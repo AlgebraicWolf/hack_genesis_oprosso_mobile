@@ -25,21 +25,27 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.grey,
       ),
-      home: StartRecording(title: 'Flutter Demo Home Page'),
+      // home: Task(title: 'Flutter Demo Home Page'),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => FirstSetup(),
+        '/second': (context) => SecondSetup(),
+        '/task': (context) => Task()
+      },
     );
   }
 }
 
-class StartRecording extends StatefulWidget {
-  StartRecording({Key key, this.title}) : super(key: key);
+class Task extends StatefulWidget {
+  Task({Key key, this.title}) : super(key: key);
 
   final String title;
 
   @override
-  _StartRecordingState createState() => _StartRecordingState();
+  _TaskState createState() => _TaskState();
 }
 
-class _StartRecordingState extends State<StartRecording> {
+class _TaskState extends State<Task> {
   bool isRecording = false;
 
   Future<bool> startScreenRecord(String filename) async {
@@ -107,11 +113,97 @@ class _StartRecordingState extends State<StartRecording> {
   }
 }
 
+// First form: IP + Port1 + ADB Code
+class FirstForm extends StatefulWidget {
+  @override
+  _FirstFormState createState() => _FirstFormState();
+}
+
+class _FirstFormState extends State<FirstForm> {
+  static const double textFieldInset = 10.0;
+
+  final _formKey = GlobalKey<FormState>();
+  final _notEmptyValidator = (String value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter correct value';
+    }
+    return null;
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: <Widget>[
+          Padding(
+            child: TextFormField(
+              decoration: InputDecoration(
+                hintText: "IP address",
+              ),
+              validator: _notEmptyValidator,
+            ),
+            padding: EdgeInsets.all(textFieldInset),
+          ),
+          Padding(
+            child: TextFormField(
+              decoration: InputDecoration(
+                hintText: "Port number",
+              ),
+              validator: _notEmptyValidator,
+            ),
+            padding: EdgeInsets.all(textFieldInset),
+          ),
+          Padding(
+            child: TextFormField(
+              decoration: InputDecoration(
+                hintText: "ADB code",
+              ),
+              validator: _notEmptyValidator,
+            ),
+            padding: EdgeInsets.all(textFieldInset),
+          ),
+          Padding(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 16.0, horizontal: 10.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState.validate()) {
+                    print("Sweet!");
+                  }
+                },
+                child: Text("Submit"),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+// Second form: Port2
+class SecondForm extends StatefulWidget {
+  @override
+  _SecondFormState createState() => _SecondFormState();
+}
+
+class _SecondFormState extends State<SecondForm> {
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    throw UnimplementedError();
+  }
+}
+
 // First portion of settings
 class FirstSetup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Testers gonna test!"),
+      ),
+      body: FirstForm(),
+    );
   }
 }
 
