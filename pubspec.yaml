@@ -28,8 +28,14 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
-  # Thing for opening emulator as a browser
-  webview_flutter: ^2.0.4
+  # Library for screen recording
+  flutter_screen_recording: 1.1.0
+  # Library for client-server interaction
+  dio: ^4.0.0
+  # Plugin for installing apps from APKs
+  install_plugin: ^2.0.1
+  # Permission manager 
+  permission_handler: 4.1.0
 
 dev_dependencies:
   flutter_test:
