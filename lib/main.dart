@@ -56,17 +56,6 @@ class _MyHomePageState extends State<MyHomePage> {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
-    return Listener(
-      child: WebView(
-        initialUrl: 'https://youtube.com/',
-        javascriptMode: JavascriptMode.unrestricted,
-      ),
-      onPointerDown: (event) =>
-          print("Press at (${event.position.dx}, ${event.position.dy})"),
-      onPointerUp: (event) =>
-          print("Release at (${event.position.dx}, ${event.position.dy})"),
-      onPointerMove: (event) =>
-          print("Move at  at (${event.position.dx}, ${event.position.dy})"),
-    );
+    return Scaffold();
   }
 }
