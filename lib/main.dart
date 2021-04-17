@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_screen_recording/flutter_screen_recording.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
+import 'package:shadow/shadow.dart';
+import 'Task.dart';
 
 const bool CONNECT_TO_ADB = false;
 
@@ -41,6 +45,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => FirstSetup(),
         '/second': (context) => SecondSetup(),
+        '/tasks': (context) => TasksView(),
         '/task': (context) => Task()
       },
     );
@@ -262,7 +267,7 @@ class _SecondFormState extends State<SecondForm> {
                   if (CONNECT_TO_ADB)
                     Dio().get(Uri.encodeFull(
                         'http://127.0.0.1:5000/connect?addr=${widget.ip}:${portController.text}'));
-                  Navigator.pushNamed(context, '/task');
+                  Navigator.pushNamed(context, '/tasks');
                 }
               },
               elevation: 1.0,
@@ -300,6 +305,40 @@ class SecondSetup extends StatelessWidget {
       ),
       body: SecondForm(
         ip: ip,
+      ),
+    );
+  }
+}
+
+// View with tasks
+class TasksView extends StatelessWidget {
+  Future<List<Task>> getTasks() {}
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Testers gonna test!"),
+      ),
+      body: FutureBuilder<List<Task>>(
+        future: Future<List<Task>>.delayed(Duration(seconds: 3), () => []),
+        builder: (BuildContext context, AsyncSnapshot<List<Task>> snapshot) {
+          if (snapshot.hasData) {
+            return Text("Done");
+          } else if (snapshot.hasError) {
+            return Text("FUCK");
+          } else {
+            return Center(
+              child: Shadow(
+                child: Image.asset(
+                  'assets/animated/loading.gif',
+                  height: 150,
+                  width: 150,
+                ),
+              ),
+            );
+          }
+        },
       ),
     );
   }
