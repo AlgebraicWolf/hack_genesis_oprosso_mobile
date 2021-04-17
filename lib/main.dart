@@ -3,9 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_screen_recording/flutter_screen_recording.dart';
+import 'package:installed_apps/installed_apps.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
 import 'package:shadow/shadow.dart';
+import 'package:installed_apps/installed_apps.dart';
+import 'package:app_installer/app_installer.dart';
+import 'package:path_provider/path_provider.dart';
 import 'Task.dart';
 
 const bool CONNECT_TO_ADB = false;
@@ -47,7 +51,9 @@ class MyApp extends StatelessWidget {
         '/': (context) => FirstSetup(),
         '/second': (context) => SecondSetup(),
         '/tasks': (context) => TasksView(),
-        '/task': (context) => Task()
+        '/task': (context) => Task(),
+        '/prepare': (context) => PrepareEnvironment(),
+        '/launch': (context) => LaunchTask(),
       },
     );
   }
@@ -85,7 +91,6 @@ class _TaskState extends State<Task> {
     await PermissionHandler().requestPermissions([
       PermissionGroup.storage,
       PermissionGroup.photos,
-      PermissionGroup.microphone,
     ]);
   }
 
@@ -123,20 +128,21 @@ class _TaskState extends State<Task> {
             ),
             RaisedButton(
               onPressed: () {
-                if (!isRecording) {
-                  startScreenRecord("demo");
-                  if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/start');
-                  setState(() {
-                    isRecording = true;
-                  });
-                } else {
-                  Future path = stopScreenRecord();
-                  if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/stop');
-                  printOnArrival(path);
-                  setState(() {
-                    isRecording = false;
-                  });
-                }
+                // if (!isRecording) {
+                //   startScreenRecord("demo");
+                //   if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/start');
+                //   setState(() {
+                //     isRecording = true;
+                //   });
+                // } else {
+                //   Future path = stopScreenRecord();
+                //   if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/stop');
+                //   printOnArrival(path);
+                //   setState(() {
+                //     isRecording = false;
+                //   });
+                // }
+                Navigator.popAndPushNamed(context, '/prepare', arguments: task);
               },
               child: Text(
                 !isRecording ? "Start recording" : "Stop recording",
@@ -349,6 +355,22 @@ class TaskEntry extends StatelessWidget {
   }
 }
 
+// Just a loading screen
+class Loading extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Shadow(
+        child: Image.asset(
+          'assets/animated/loading.gif',
+          height: 150,
+          width: 150,
+        ),
+      ),
+    );
+  }
+}
+
 // View with tasks
 class TasksView extends StatelessWidget {
   Future<List<TaskData>> getTasks() async {
@@ -367,8 +389,8 @@ class TasksView extends StatelessWidget {
                   2,
                   "Задача на хакатон",
                   " Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. ",
-                  "",
-                  "")
+                  "https://github.com/KristinaKulabuhova/hack_genesis_cdn/raw/master/com.sec.android.app.popupcalculator_12.0.05.5-1200505000.apk",
+                  "com.sec.android.app.popupcalculator")
             ]);
   }
 
@@ -408,18 +430,63 @@ class TasksView extends StatelessWidget {
           } else if (snapshot.hasError) {
             return Text("FUCK");
           } else {
-            return Center(
-              child: Shadow(
-                child: Image.asset(
-                  'assets/animated/loading.gif',
-                  height: 150,
-                  width: 150,
-                ),
-              ),
-            );
+            return Loading();
           }
         },
       ),
     );
+  }
+}
+
+// Loading screen that checks and prepares everything for the user to complete the task
+class PrepareEnvironment extends StatelessWidget {
+  Future<int> prepareEnvironment(String link, String pkgname) async {
+    try {
+      var available = await InstalledApps.getAppInfo(pkgname);
+    } on String catch (_) {
+      print("App is not installed. Downloading...");
+      Directory docDir = await getExternalStorageDirectory();
+      String docPath = docDir.path;
+      String appPath = docPath + pkgname + '.apk';
+
+      // print("Acquired temporary directory. Downloading APK...");
+      await Dio().download(link, appPath);
+
+      print("APK was downloaded. Launching installation...");
+      await AppInstaller.installApk(appPath);
+      print("The app was installed.");
+    }
+
+    return 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final TaskData task = ModalRoute.of(context).settings.arguments as TaskData;
+
+    return Scaffold(
+      appBar: AppBar(title: Text("Настройка окружения")),
+      body: FutureBuilder(
+        future: prepareEnvironment(task.link, task.pkgname),
+        builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+          if (snapshot.hasData) {
+            Navigator.popAndPushNamed(context, '/launch', arguments: task);
+          } else if (snapshot.hasError) {
+            return Text("FUCK");
+          } else {
+            return Loading();
+          }
+        },
+      ),
+    );
+  }
+}
+
+// Screen for task launching that is opened _after_ the environment is prepared
+class LaunchTask extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    throw UnimplementedError();
   }
 }

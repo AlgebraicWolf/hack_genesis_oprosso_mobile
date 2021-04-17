@@ -35,9 +35,13 @@ dependencies:
   # Library for client-server interaction
   dio: ^4.0.0
   # Plugin for installing apps from APKs
-  install_plugin: ^2.0.1
+  app_installer: ^1.0.0
   # Permission manager 
   permission_handler: 4.1.0
+  # Plugin for checking whether an app is available and launching it
+  installed_apps: ^1.1.1
+  # Plugin for getting temporary directory for APKs and stuff
+  path_provider: ^2.0.1
 
 dev_dependencies:
   flutter_test:

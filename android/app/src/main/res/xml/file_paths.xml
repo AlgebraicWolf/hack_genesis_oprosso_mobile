@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files_path path="apks/" name="myapks" />
+    <external-path path="Android/data/com.example.hack_genesis_oprosso_mobile/" name="files_root" />
+    <external-path path="." name="external_storage_root" />
+</paths>
