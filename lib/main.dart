@@ -9,6 +9,7 @@ import 'package:shadow/shadow.dart';
 import 'Task.dart';
 
 const bool CONNECT_TO_ADB = false;
+const String SERVER_ADDR = 'http://127.0.0.1:5000/';
 
 void main() {
   runApp(MyApp());
@@ -96,36 +97,58 @@ class _TaskState extends State<Task> {
 
   @override
   Widget build(BuildContext context) {
+    final TaskData task = ModalRoute.of(context).settings.arguments as TaskData;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Testers gonna test"),
+        title: Text(task.name),
       ),
       body: Container(
-        child: RaisedButton(
-          onPressed: () {
-            if (!isRecording) {
-              startScreenRecord("demo");
-              if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/start');
-              setState(() {
-                isRecording = true;
-              });
-            } else {
-              Future path = stopScreenRecord();
-              if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/stop');
-              printOnArrival(path);
-              setState(() {
-                isRecording = false;
-              });
-            }
-          },
-          child: Text(
-            !isRecording ? "Start recording" : "Stop recording",
-            style: TextStyle(
-              fontSize: 20,
+        child: Column(
+          children: <Widget>[
+            FractionallySizedBox(
+              widthFactor: 1,
+              child: Container(
+                child: Text(task.description),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                  border: Border.all(
+                    color: Color.fromARGB(255, 228, 228, 228),
+                    width: 1,
+                  ),
+                ),
+                padding: EdgeInsets.all(10),
+              ),
             ),
-          ),
+            RaisedButton(
+              onPressed: () {
+                if (!isRecording) {
+                  startScreenRecord("demo");
+                  if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/start');
+                  setState(() {
+                    isRecording = true;
+                  });
+                } else {
+                  Future path = stopScreenRecord();
+                  if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/stop');
+                  printOnArrival(path);
+                  setState(() {
+                    isRecording = false;
+                  });
+                }
+              },
+              child: Text(
+                !isRecording ? "Start recording" : "Stop recording",
+                style: TextStyle(
+                  fontSize: 20,
+                ),
+              ),
+            )
+          ],
         ),
         alignment: Alignment.center,
+        padding: EdgeInsets.all(10),
       ),
     );
   }
@@ -310,9 +333,44 @@ class SecondSetup extends StatelessWidget {
   }
 }
 
+class TaskEntry extends StatelessWidget {
+  final TaskData task;
+
+  TaskEntry(this.task);
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(task.name),
+      onTap: () {
+        print("Selected task ${task.taskId}");
+      },
+    );
+  }
+}
+
 // View with tasks
 class TasksView extends StatelessWidget {
-  Future<List<Task>> getTasks() {}
+  Future<List<TaskData>> getTasks() async {
+    return Future.delayed(
+        Duration(seconds: 2),
+        () => [
+              TaskData(
+                  0,
+                  "Задача про два стула",
+                  "Есть два стула: на одном пики точеные, на другом...",
+                  "",
+                  ""),
+              TaskData(1, "Задача Заранкевича", "писеееееееееееееееееееееец",
+                  "", ""),
+              TaskData(
+                  2,
+                  "Задача на хакатон",
+                  " Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. ",
+                  "",
+                  "")
+            ]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -320,11 +378,33 @@ class TasksView extends StatelessWidget {
       appBar: AppBar(
         title: Text("Testers gonna test!"),
       ),
-      body: FutureBuilder<List<Task>>(
-        future: Future<List<Task>>.delayed(Duration(seconds: 3), () => []),
-        builder: (BuildContext context, AsyncSnapshot<List<Task>> snapshot) {
+      body: FutureBuilder<List<TaskData>>(
+        future: getTasks(),
+        builder:
+            (BuildContext context, AsyncSnapshot<List<TaskData>> snapshot) {
           if (snapshot.hasData) {
-            return Text("Done");
+            final list = snapshot.data;
+            if (list.length == 0) {
+            } else {
+              return ListView.separated(
+                itemCount: list.length,
+                itemBuilder: (context, index) => ListTile(
+                  enabled: true,
+                  onTap: () {
+                    print("Selected item ${list[index].taskId}");
+                    Navigator.pushNamed(
+                      context,
+                      '/task',
+                      arguments: list[index],
+                    );
+                  },
+                  title: Text(
+                    list[index].name,
+                  ),
+                ),
+                separatorBuilder: (context, index) => Divider(),
+              );
+            }
           } else if (snapshot.hasError) {
             return Text("FUCK");
           } else {

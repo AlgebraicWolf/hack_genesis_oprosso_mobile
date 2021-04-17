@@ -1,13 +1,15 @@
-class Task {
+class TaskData {
   int taskId;
   String name;
   String description;
   String link;
+  String pkgname;
 
-  Task(this.taskId, this.name, this.description, this.link);
-  Task.fromJson(Map<String, dynamic> json)
+  TaskData(this.taskId, this.name, this.description, this.link, this.pkgname);
+  TaskData.fromJson(Map<String, dynamic> json)
       : taskId = json['task_id'],
         name = json['name'],
         description = json['description'],
-        link = json['link'];
+        link = json['link'],
+        pkgname = json['pkgname'];
 }
