@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_screen_recording/flutter_screen_recording.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:dio/dio.dart';
 
 void main() {
   runApp(MyApp());
@@ -89,11 +90,13 @@ class _TaskState extends State<Task> {
           onPressed: () {
             if (!isRecording) {
               startScreenRecord("demo");
+              Dio().get('http://127.0.0.1:5000/start');
               setState(() {
                 isRecording = true;
               });
             } else {
               Future path = stopScreenRecord();
+              Dio().get('http://127.0.0.1:5000/stop');
               printOnArrival(path);
               setState(() {
                 isRecording = false;
@@ -122,7 +125,12 @@ class FirstForm extends StatefulWidget {
 class _FirstFormState extends State<FirstForm> {
   static const double textFieldInset = 10.0;
 
+  final ipController = TextEditingController();
+  final portController = TextEditingController();
+  final adbController = TextEditingController();
+
   final _formKey = GlobalKey<FormState>();
+
   final _notEmptyValidator = (String value) {
     if (value == null || value.isEmpty) {
       return 'Please enter correct value';
@@ -138,6 +146,7 @@ class _FirstFormState extends State<FirstForm> {
         children: <Widget>[
           Padding(
             child: TextFormField(
+              controller: ipController,
               decoration: InputDecoration(
                 hintText: "IP address",
               ),
@@ -147,6 +156,7 @@ class _FirstFormState extends State<FirstForm> {
           ),
           Padding(
             child: TextFormField(
+              controller: portController,
               decoration: InputDecoration(
                 hintText: "Port number",
               ),
@@ -156,6 +166,7 @@ class _FirstFormState extends State<FirstForm> {
           ),
           Padding(
             child: TextFormField(
+              controller: adbController,
               decoration: InputDecoration(
                 hintText: "ADB code",
               ),
@@ -164,16 +175,23 @@ class _FirstFormState extends State<FirstForm> {
             padding: EdgeInsets.all(textFieldInset),
           ),
           Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 16.0, horizontal: 10.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState.validate()) {
-                    print("Sweet!");
-                  }
-                },
-                child: Text("Submit"),
-              )),
+            padding:
+                const EdgeInsets.symmetric(vertical: 16.0, horizontal: 10.0),
+            child: ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState.validate()) {
+                  Dio().get(
+                      'http://127.0.0.1:5000/pair?addr=${ipController.text}:${portController.text}&code=${adbController.text}');
+                  Navigator.pushNamed(
+                    context,
+                    '/second',
+                    arguments: ipController.text,
+                  );
+                }
+              },
+              child: Text("Submit"),
+            ),
+          ),
         ],
       ),
     );
@@ -182,15 +200,61 @@ class _FirstFormState extends State<FirstForm> {
 
 // Second form: Port2
 class SecondForm extends StatefulWidget {
+  final String ip;
+
+  SecondForm({Key key, this.ip}) : super(key: key);
+
   @override
   _SecondFormState createState() => _SecondFormState();
 }
 
 class _SecondFormState extends State<SecondForm> {
+  static const double textFieldInset = 10.0;
+
+  final portController = TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
+
+  final _notEmptyValidator = (String value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter correct value';
+    }
+    return null;
+  };
+
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: <Widget>[
+          Padding(
+            child: TextFormField(
+              controller: portController,
+              decoration: InputDecoration(
+                hintText: "Another port number",
+              ),
+              validator: _notEmptyValidator,
+            ),
+            padding: EdgeInsets.all(textFieldInset),
+          ),
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(vertical: 16.0, horizontal: 10.0),
+            child: ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState.validate()) {
+                  Dio().get(Uri.encodeFull(
+                      'http://127.0.0.1:5000/connect?addr=${widget.ip}:${portController.text}'));
+                  Navigator.pushNamed(context, '/task');
+                }
+              },
+              child: Text("Submit"),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -211,6 +275,15 @@ class FirstSetup extends StatelessWidget {
 class SecondSetup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container();
+    final String ip = ModalRoute.of(context).settings.arguments as String;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Testers gonna test!"),
+      ),
+      body: SecondForm(
+        ip: ip,
+      ),
+    );
   }
 }
