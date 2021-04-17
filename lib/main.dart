@@ -59,6 +59,31 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class FancyText extends StatelessWidget {
+  final String txt;
+
+  FancyText(this.txt);
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      widthFactor: 1,
+      child: Container(
+        child: Text(txt),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+          border: Border.all(
+            color: Color.fromARGB(255, 228, 228, 228),
+            width: 1,
+          ),
+        ),
+        padding: EdgeInsets.all(10),
+      ),
+    );
+  }
+}
+
 class Task extends StatefulWidget {
   Task({Key key, this.title}) : super(key: key);
 
@@ -111,21 +136,7 @@ class _TaskState extends State<Task> {
       body: Container(
         child: Column(
           children: <Widget>[
-            FractionallySizedBox(
-              widthFactor: 1,
-              child: Container(
-                child: Text(task.description),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
-                  border: Border.all(
-                    color: Color.fromARGB(255, 228, 228, 228),
-                    width: 1,
-                  ),
-                ),
-                padding: EdgeInsets.all(10),
-              ),
-            ),
+            FancyText(task.description),
             RaisedButton(
               onPressed: () {
                 // if (!isRecording) {
@@ -414,11 +425,14 @@ class TasksView extends StatelessWidget {
                   enabled: true,
                   onTap: () {
                     print("Selected item ${list[index].taskId}");
-                    Navigator.pushNamed(
-                      context,
-                      '/task',
-                      arguments: list[index],
-                    );
+                    WidgetsBinding.instance
+                        .addPostFrameCallback((_) => Navigator.pushNamed(
+                              context,
+                              '/task',
+                              arguments: list[index],
+                            ));
+
+                    return Container();
                   },
                   title: Text(
                     list[index].name,
@@ -470,7 +484,10 @@ class PrepareEnvironment extends StatelessWidget {
         future: prepareEnvironment(task.link, task.pkgname),
         builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
           if (snapshot.hasData) {
-            Navigator.popAndPushNamed(context, '/launch', arguments: task);
+            WidgetsBinding.instance.addPostFrameCallback((_) =>
+                Navigator.popAndPushNamed(context, '/launch', arguments: task));
+
+            return Container();
           } else if (snapshot.hasError) {
             return Text("FUCK");
           } else {
@@ -486,7 +503,17 @@ class PrepareEnvironment extends StatelessWidget {
 class LaunchTask extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
+    final TaskData task = ModalRoute.of(context).settings.arguments as TaskData;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(task.name)),
+      body: Column(
+        children: <Widget>[
+          FancyText(
+              "After pressing the \"Start\" button the app will launch the taget app and start all the necessary recording. Make sure to provide access to screen recording. The insturction will be replicated below for the sake of your convenience. When you are done, make sure to get back here and stop the tracking."),
+          FancyText(task.description),
+        ],
+      ),
+    );
   }
 }
