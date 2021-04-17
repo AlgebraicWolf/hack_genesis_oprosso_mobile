@@ -7,9 +7,9 @@ class TaskData {
 
   TaskData(this.taskId, this.name, this.description, this.link, this.pkgname);
   TaskData.fromJson(Map<String, dynamic> json)
-      : taskId = json['task_id'],
+      : taskId = int.parse(json['task_id']),
         name = json['name'],
         description = json['description'],
-        link = json['link'],
-        pkgname = json['pkgname'];
+        link = json['file_ref'],
+        pkgname = json['pkg_name'];
 }

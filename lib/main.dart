@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -13,7 +14,7 @@ import 'package:path_provider/path_provider.dart';
 import 'Task.dart';
 
 const bool CONNECT_TO_ADB = false;
-const String SERVER_ADDR = 'http://127.0.0.1:5000/';
+const String SERVER_ADDR = 'http://192.168.1.85:8000/api';
 
 void main() {
   runApp(MyApp());
@@ -94,24 +95,6 @@ class Task extends StatefulWidget {
 }
 
 class _TaskState extends State<Task> {
-  bool isRecording = false;
-
-  Future<bool> startScreenRecord(String filename) async {
-    bool result = await FlutterScreenRecording.startRecordScreen(filename);
-    return result;
-  }
-
-  Future<String> stopScreenRecord() async {
-    String path = await FlutterScreenRecording.stopRecordScreen;
-    return path;
-  }
-
-  void printOnArrival(Future<String> str) async {
-    str.then((s) {
-      print(s);
-    });
-  }
-
   void requestPermissions() async {
     await PermissionHandler().requestPermissions([
       PermissionGroup.storage,
@@ -136,27 +119,17 @@ class _TaskState extends State<Task> {
       body: Container(
         child: Column(
           children: <Widget>[
-            FancyText(task.description),
+            Expanded(
+              child: SingleChildScrollView(
+                child: FancyText(task.description),
+              ),
+            ),
             RaisedButton(
               onPressed: () {
-                // if (!isRecording) {
-                //   startScreenRecord("demo");
-                //   if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/start');
-                //   setState(() {
-                //     isRecording = true;
-                //   });
-                // } else {
-                //   Future path = stopScreenRecord();
-                //   if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/stop');
-                //   printOnArrival(path);
-                //   setState(() {
-                //     isRecording = false;
-                //   });
-                // }
                 Navigator.popAndPushNamed(context, '/prepare', arguments: task);
               },
               child: Text(
-                !isRecording ? "Start recording" : "Stop recording",
+                "Select this task",
                 style: TextStyle(
                   fontSize: 20,
                 ),
@@ -385,24 +358,31 @@ class Loading extends StatelessWidget {
 // View with tasks
 class TasksView extends StatelessWidget {
   Future<List<TaskData>> getTasks() async {
-    return Future.delayed(
-        Duration(seconds: 2),
-        () => [
-              TaskData(
-                  0,
-                  "Задача про два стула",
-                  "Есть два стула: на одном пики точеные, на другом...",
-                  "",
-                  ""),
-              TaskData(1, "Задача Заранкевича", "писеееееееееееееееееееееец",
-                  "", ""),
-              TaskData(
-                  2,
-                  "Задача на хакатон",
-                  " Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. ",
-                  "https://github.com/KristinaKulabuhova/hack_genesis_cdn/raw/master/com.sec.android.app.popupcalculator_12.0.05.5-1200505000.apk",
-                  "com.sec.android.app.popupcalculator")
-            ]);
+    // return Future.delayed(
+    //     Duration(seconds: 2),
+    //     () => [
+    //           TaskData(
+    //               0,
+    //               "Задача про два стула",
+    //               "Есть два стула: на одном пики точеные, на другом...",
+    //               "",
+    //               ""),
+    //           TaskData(1, "Задача Заранкевича", "писеееееееееееееееееееееец",
+    //               "", ""),
+    //           TaskData(
+    //               2,
+    //               "Задача на хакатон",
+    //               " Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. ",
+    //               "https://github.com/KristinaKulabuhova/hack_genesis_cdn/raw/master/com.sec.android.app.popupcalculator_12.0.05.5-1200505000.apk",
+    //               "com.vkontakte.android")
+    //         ]);
+    var response = await Dio().get(SERVER_ADDR + '/tasks',
+        options: Options(responseType: ResponseType.json));
+    var data = response.data['tasks']; // Extract list of records
+    print(response.data.toString());
+    List<TaskData> mapped =
+        data.map<TaskData>((elem) => TaskData.fromJson(elem)).toList();
+    return mapped;
   }
 
   @override
@@ -417,30 +397,27 @@ class TasksView extends StatelessWidget {
             (BuildContext context, AsyncSnapshot<List<TaskData>> snapshot) {
           if (snapshot.hasData) {
             final list = snapshot.data;
-            if (list.length == 0) {
-            } else {
-              return ListView.separated(
-                itemCount: list.length,
-                itemBuilder: (context, index) => ListTile(
-                  enabled: true,
-                  onTap: () {
-                    print("Selected item ${list[index].taskId}");
-                    WidgetsBinding.instance
-                        .addPostFrameCallback((_) => Navigator.pushNamed(
-                              context,
-                              '/task',
-                              arguments: list[index],
-                            ));
+            return ListView.separated(
+              itemCount: list.length,
+              itemBuilder: (context, index) => ListTile(
+                enabled: true,
+                onTap: () {
+                  print("Selected item ${list[index].taskId}");
+                  WidgetsBinding.instance
+                      .addPostFrameCallback((_) => Navigator.pushNamed(
+                            context,
+                            '/task',
+                            arguments: list[index],
+                          ));
 
-                    return Container();
-                  },
-                  title: Text(
-                    list[index].name,
-                  ),
+                  return Container();
+                },
+                title: Text(
+                  list[index].name,
                 ),
-                separatorBuilder: (context, index) => Divider(),
-              );
-            }
+              ),
+              separatorBuilder: (context, index) => Divider(),
+            );
           } else if (snapshot.hasError) {
             return Text("FUCK");
           } else {
@@ -500,7 +477,43 @@ class PrepareEnvironment extends StatelessWidget {
 }
 
 // Screen for task launching that is opened _after_ the environment is prepared
-class LaunchTask extends StatelessWidget {
+class LaunchTask extends StatefulWidget {
+  @override
+  _LaunchTaskState createState() => _LaunchTaskState();
+}
+
+class _LaunchTaskState extends State<LaunchTask> {
+  bool isRecording = false;
+
+  Future<bool> startScreenRecord(String filename) async {
+    bool result = await FlutterScreenRecording.startRecordScreen(filename);
+    return result;
+  }
+
+  Future<String> stopScreenRecord() async {
+    String path = await FlutterScreenRecording.stopRecordScreen;
+    return path;
+  }
+
+  Future<bool> startTask(TaskData task) async {
+    await startScreenRecord("taskExecution");
+    if (CONNECT_TO_ADB) await Dio().get('http://127.0.0.1:5000/start');
+    await InstalledApps.startApp(task.pkgname);
+  }
+
+  Future<bool> stopTask() async {
+    String path = await stopScreenRecord();
+    if (CONNECT_TO_ADB) await Dio().get('http://127.0.0.1:5000/stop');
+
+    // TODO process path (somehow) :D
+  }
+
+  void printOnArrival(Future<String> str) async {
+    str.then((s) {
+      print(s);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final TaskData task = ModalRoute.of(context).settings.arguments as TaskData;
@@ -509,9 +522,44 @@ class LaunchTask extends StatelessWidget {
       appBar: AppBar(title: Text(task.name)),
       body: Column(
         children: <Widget>[
-          FancyText(
-              "After pressing the \"Start\" button the app will launch the taget app and start all the necessary recording. Make sure to provide access to screen recording. The insturction will be replicated below for the sake of your convenience. When you are done, make sure to get back here and stop the tracking."),
-          FancyText(task.description),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(10.0),
+              child: ListView(
+                children: [
+                  FancyText(
+                      "After pressing the \"Start\" button the app will launch the taget app and start all the necessary recording. Make sure to provide access to screen recording. The insturction will be replicated below for the sake of your convenience. When you are done, make sure to get back here and stop the tracking."),
+                  Container(
+                    height: 10,
+                    width: 1,
+                  ),
+                  FancyText(task.description),
+                ],
+              ),
+            ),
+          ),
+          RaisedButton(
+            onPressed: () {
+              if (!isRecording) {
+                startTask(task);
+                setState(() {
+                  isRecording = true;
+                });
+              } else {
+                stopTask();
+                setState(() {
+                  isRecording = false;
+                });
+              }
+            },
+            child: Text(
+              !isRecording ? "Start recording" : "Stop recording",
+              style: TextStyle(
+                fontSize: 20,
+              ),
+            ),
+            color: !isRecording ? Color(0xffc8f7dc) : Color(0xffffd3e2),
+          )
         ],
       ),
     );
