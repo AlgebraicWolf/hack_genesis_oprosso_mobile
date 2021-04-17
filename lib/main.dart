@@ -4,6 +4,8 @@ import 'package:flutter_screen_recording/flutter_screen_recording.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
 
+const bool CONNECT_TO_ADB = false;
+
 void main() {
   runApp(MyApp());
 }
@@ -24,8 +26,16 @@ class MyApp extends StatelessWidget {
         // or simply save your changes to "hot reload" in a Flutter IDE).
         // Notice that the counter didn't reset back to zero; the application
         // is not restarted.
-        primarySwatch: Colors.grey,
+        primaryColor: Color.fromARGB(255, 219, 246, 253),
+        scaffoldBackgroundColor: Color.fromARGB(255, 243, 246, 253),
+        buttonTheme: ButtonThemeData(
+          buttonColor: Color(0xffc8f7dc),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(100.0)),
+          ),
+        ),
       ),
+
       // home: Task(title: 'Flutter Demo Home Page'),
       initialRoute: '/',
       routes: {
@@ -86,17 +96,17 @@ class _TaskState extends State<Task> {
         title: const Text("Testers gonna test"),
       ),
       body: Container(
-        child: ElevatedButton(
+        child: RaisedButton(
           onPressed: () {
             if (!isRecording) {
               startScreenRecord("demo");
-              Dio().get('http://127.0.0.1:5000/start');
+              if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/start');
               setState(() {
                 isRecording = true;
               });
             } else {
               Future path = stopScreenRecord();
-              Dio().get('http://127.0.0.1:5000/stop');
+              if (CONNECT_TO_ADB) Dio().get('http://127.0.0.1:5000/stop');
               printOnArrival(path);
               setState(() {
                 isRecording = false;
@@ -116,6 +126,36 @@ class _TaskState extends State<Task> {
   }
 }
 
+class NeatTextFormField extends StatelessWidget {
+  final String hint;
+  final TextEditingController controller;
+
+  NeatTextFormField(this.hint, this.controller);
+
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(50.0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(
+            width: 1.0,
+            color: Color.fromARGB(255, 228, 228, 228),
+          ),
+          borderRadius: BorderRadius.all(Radius.circular(50.0)),
+        ),
+      ),
+      validator: (value) =>
+          (value == null || value.isEmpty) ? 'Please enter correctValue' : null,
+    );
+  }
+}
+
 // First form: IP + Port1 + ADB Code
 class FirstForm extends StatefulWidget {
   @override
@@ -131,13 +171,6 @@ class _FirstFormState extends State<FirstForm> {
 
   final _formKey = GlobalKey<FormState>();
 
-  final _notEmptyValidator = (String value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter correct value';
-    }
-    return null;
-  };
-
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -145,43 +178,26 @@ class _FirstFormState extends State<FirstForm> {
       child: Column(
         children: <Widget>[
           Padding(
-            child: TextFormField(
-              controller: ipController,
-              decoration: InputDecoration(
-                hintText: "IP address",
-              ),
-              validator: _notEmptyValidator,
-            ),
+            child: NeatTextFormField("IP address", ipController),
             padding: EdgeInsets.all(textFieldInset),
           ),
           Padding(
-            child: TextFormField(
-              controller: portController,
-              decoration: InputDecoration(
-                hintText: "Port number",
-              ),
-              validator: _notEmptyValidator,
-            ),
+            child: NeatTextFormField("Port number", portController),
             padding: EdgeInsets.all(textFieldInset),
           ),
           Padding(
-            child: TextFormField(
-              controller: adbController,
-              decoration: InputDecoration(
-                hintText: "ADB code",
-              ),
-              validator: _notEmptyValidator,
-            ),
+            child: NeatTextFormField("ADB code", adbController),
             padding: EdgeInsets.all(textFieldInset),
           ),
           Padding(
             padding:
                 const EdgeInsets.symmetric(vertical: 16.0, horizontal: 10.0),
-            child: ElevatedButton(
+            child: RaisedButton(
               onPressed: () {
                 if (_formKey.currentState.validate()) {
-                  Dio().get(
-                      'http://127.0.0.1:5000/pair?addr=${ipController.text}:${portController.text}&code=${adbController.text}');
+                  if (CONNECT_TO_ADB)
+                    Dio().get(Uri.encodeFull(
+                        'http://127.0.0.1:5000/pair?addr=${ipController.text}:${portController.text}&code=${adbController.text}'));
                   Navigator.pushNamed(
                     context,
                     '/second',
@@ -189,7 +205,12 @@ class _FirstFormState extends State<FirstForm> {
                   );
                 }
               },
-              child: Text("Submit"),
+              padding: EdgeInsets.all(15.0),
+              elevation: 1.0,
+              child: Text(
+                "Submit",
+                style: TextStyle(fontSize: 20.0),
+              ),
             ),
           ),
         ],
@@ -229,26 +250,22 @@ class _SecondFormState extends State<SecondForm> {
       child: Column(
         children: <Widget>[
           Padding(
-            child: TextFormField(
-              controller: portController,
-              decoration: InputDecoration(
-                hintText: "Another port number",
-              ),
-              validator: _notEmptyValidator,
-            ),
+            child: NeatTextFormField("Another port number", portController),
             padding: EdgeInsets.all(textFieldInset),
           ),
           Padding(
             padding:
                 const EdgeInsets.symmetric(vertical: 16.0, horizontal: 10.0),
-            child: ElevatedButton(
+            child: RaisedButton(
               onPressed: () {
                 if (_formKey.currentState.validate()) {
-                  Dio().get(Uri.encodeFull(
-                      'http://127.0.0.1:5000/connect?addr=${widget.ip}:${portController.text}'));
+                  if (CONNECT_TO_ADB)
+                    Dio().get(Uri.encodeFull(
+                        'http://127.0.0.1:5000/connect?addr=${widget.ip}:${portController.text}'));
                   Navigator.pushNamed(context, '/task');
                 }
               },
+              elevation: 1.0,
               child: Text("Submit"),
             ),
           ),
