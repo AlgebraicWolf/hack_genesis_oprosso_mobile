@@ -55,6 +55,7 @@ class MyApp extends StatelessWidget {
         '/task': (context) => Task(),
         '/prepare': (context) => PrepareEnvironment(),
         '/launch': (context) => LaunchTask(),
+        '/upload': (context) => CollectAndUpload(),
       },
     );
   }
@@ -376,7 +377,7 @@ class TasksView extends StatelessWidget {
     //               "https://github.com/KristinaKulabuhova/hack_genesis_cdn/raw/master/com.sec.android.app.popupcalculator_12.0.05.5-1200505000.apk",
     //               "com.vkontakte.android")
     //         ]);
-    var response = await Dio().get(SERVER_ADDR + '/tasks',
+    var response = await Dio().get(SERVER_ADDR + '/tasks/',
         options: Options(responseType: ResponseType.json));
     var data = response.data['tasks']; // Extract list of records
     print(response.data.toString());
@@ -550,6 +551,12 @@ class _LaunchTaskState extends State<LaunchTask> {
                 setState(() {
                   isRecording = false;
                 });
+                WidgetsBinding.instance
+                    .addPostFrameCallback((_) => Navigator.popAndPushNamed(
+                          context,
+                          '/upload',
+                          arguments: task,
+                        ));
               }
             },
             child: Text(
@@ -561,6 +568,47 @@ class _LaunchTaskState extends State<LaunchTask> {
             color: !isRecording ? Color(0xffc8f7dc) : Color(0xffffd3e2),
           )
         ],
+      ),
+    );
+  }
+}
+
+// Screen for collecting info from server running in chroot and sending it to remote server
+class CollectAndUpload extends StatelessWidget {
+  Future<int> collectAndUpload(int taskId) async {
+    // Get the directory for the tarball
+    Directory docDir = await getExternalStorageDirectory();
+    String docPath = docDir.path;
+    String tarPath = docPath + 'info.tar';
+
+    // Pull tarball from the daemon
+    if (CONNECT_TO_ADB)
+      await Dio().download("http://127.0.0.1:5000/fetch", tarPath);
+
+    // TODO push video and tarball to the server
+    return 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final TaskData task = ModalRoute.of(context).settings.arguments as TaskData;
+
+    return Scaffold(
+      appBar: AppBar(title: Text("Настройка окружения")),
+      body: FutureBuilder(
+        future: collectAndUpload(task.taskId),
+        builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+          if (snapshot.hasData) {
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) => Navigator.pop(context));
+
+            return Container();
+          } else if (snapshot.hasError) {
+            return Text("FUCK");
+          } else {
+            return Loading();
+          }
+        },
       ),
     );
   }
